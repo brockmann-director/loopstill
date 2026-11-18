@@ -22,6 +22,7 @@ Tasten: Leertaste, ← → (mit ⇧ 1 s), I, O, B, S, ⌫.
 - `analyse-core.js`: Schnitterkennung und Bildbewertung (wie in FrameReel)
 - Fallback, wenn der Browser das Video nicht direkt dekodieren kann (z. B. ProRes in Safari): Abtasten über das Video-Element, Schnitte danach per Halbierung aufs Frame genau
 - `gif-worker.js`: gifski als WebAssembly in einem eigenen Thread
+- Version + Build-Datum (unten rechts): vor jedem Push `python3 tools/version.py` ausführen
 - Kein Build-Schritt, keine externen Server oder Schriften. GitHub Pages: Settings → Pages → Deploy from a branch → `main` / root.
 
 ## Lizenzen

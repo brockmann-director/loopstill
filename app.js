@@ -2,6 +2,7 @@
 (() => {
 'use strict';
 const A = window.Analyse;
+const VERSION = window.LOOPSTILL_VERSION || 'dev';
 const $ = (id) => document.getElementById(id);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const pad = (n, l = 2) => String(n).padStart(l, '0');
@@ -216,7 +217,7 @@ function unsupportedText(file) {
 // ---------- Analyse ----------
 // Worker und Encoder gleich beim Laden holen: danach braucht die Seite kein Netz mehr.
 let spareWorker = null;
-function prepareSpare() { try { if (!spareWorker) spareWorker = new Worker('analyse-worker.js'); } catch {} }
+function prepareSpare() { try { if (!spareWorker) spareWorker = new Worker('analyse-worker.js?v=' + VERSION); } catch {} }
 function stillInterval() { return Math.max(0.5, S.duration / 5000); }
 
 function startAnalysis() {
@@ -224,7 +225,7 @@ function startAnalysis() {
   const ana = S.ana = { gen, running: true, progress: 0, exact: false, slow: false, times: null, values: null, samples: null, refined: new Map(), worker: null, cancelled: false };
   renderAnalysis();
   let worker;
-  try { worker = spareWorker || new Worker('analyse-worker.js'); } catch { worker = null; }
+  try { worker = spareWorker || new Worker('analyse-worker.js?v=' + VERSION); } catch { worker = null; }
   spareWorker = null;
   setTimeout(prepareSpare, 0);
   if (!worker) { fallbackAnalysis(ana); return; }
@@ -1227,7 +1228,7 @@ async function makeZip(files) {
 // ---------- Export ----------
 let gifWorker = null;
 function getGifWorker() {
-  if (!gifWorker) gifWorker = new Worker('gif-worker.js', { type: 'module' });
+  if (!gifWorker) gifWorker = new Worker('gif-worker.js?v=' + VERSION, { type: 'module' });
   return gifWorker;
 }
 function cancelExport() {
@@ -1386,6 +1387,7 @@ $('exportStills').onclick = async () => {
 };
 
 // ---------- Start ----------
+$('version').textContent = `v${VERSION}${window.LOOPSTILL_BUILD ? ' · ' + window.LOOPSTILL_BUILD : ''}`;
 prepareSpare();
 try { getGifWorker().postMessage({ type: 'init' }); } catch {}
 paintIcons();

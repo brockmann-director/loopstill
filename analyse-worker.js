@@ -2,7 +2,7 @@
    dekodieren (meist per Hardware) und für Schnitte + Screengrab-Bewertung auswerten.
    Klappt etwas nicht (Codec, Container, alter Browser), meldet der Worker „unsupported“
    und das Hauptfenster analysiert langsamer über das Video-Element. */
-importScripts('vendor/mp4box.all.min.js', 'analyse-core.js');
+importScripts('vendor/mp4box.all.min.js', 'analyse-core.js' + self.location.search);
 
 const A = self.Analyse;
 let cancelled = false;
