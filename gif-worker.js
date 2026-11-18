@@ -1,10 +1,11 @@
 /* GIF-Encoding mit gifski (WebAssembly) in einem eigenen Thread. */
-import encode from './vendor/gifski/dist/encode.js';
+import encode, { init } from './vendor/gifski/dist/encode.js';
 
 let frames = [];
 
 self.onmessage = async (e) => {
   const msg = e.data;
+  if (msg.type === 'init') { try { await init(); } catch {} return; }
   if (msg.type === 'reset') { frames = []; return; }
   if (msg.type === 'frame') { frames.push(new Uint8Array(msg.buffer)); return; }
   if (msg.type === 'encode') {

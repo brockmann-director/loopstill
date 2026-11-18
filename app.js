@@ -211,6 +211,9 @@ function unsupportedText(file) {
 }
 
 // ---------- Analyse ----------
+// Worker und Encoder gleich beim Laden holen: danach braucht die Seite kein Netz mehr.
+let spareWorker = null;
+function prepareSpare() { try { if (!spareWorker) spareWorker = new Worker('analyse-worker.js'); } catch {} }
 function stillInterval() { return Math.max(0.5, S.duration / 5000); }
 
 function startAnalysis() {
@@ -218,7 +221,9 @@ function startAnalysis() {
   const ana = S.ana = { gen, running: true, progress: 0, exact: false, slow: false, times: null, values: null, samples: null, refined: new Map(), worker: null, cancelled: false };
   renderAnalysis();
   let worker;
-  try { worker = new Worker('analyse-worker.js'); } catch { worker = null; }
+  try { worker = spareWorker || new Worker('analyse-worker.js'); } catch { worker = null; }
+  spareWorker = null;
+  setTimeout(prepareSpare, 0);
   if (!worker) { fallbackAnalysis(ana); return; }
   ana.worker = worker;
   worker.onmessage = (e) => {
@@ -1253,6 +1258,8 @@ $('exportStills').onclick = async () => {
 };
 
 // ---------- Start ----------
+prepareSpare();
+try { getGifWorker().postMessage({ type: 'init' }); } catch {}
 paintIcons();
 renderStillSettings();
 renderGifSettings();
