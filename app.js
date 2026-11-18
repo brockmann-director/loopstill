@@ -133,6 +133,7 @@ function bytes(n) {
 }
 
 function toast(text, ms = 3200) {
+  document.querySelectorAll('.toast').forEach((t) => t.remove());
   const el = document.createElement('div');
   el.className = 'toast'; el.textContent = text;
   document.body.appendChild(el);
@@ -171,7 +172,8 @@ async function openFile(file) {
   thumbCache.clear(); thumbQueue.length = 0; stripImgs.clear();
   S.file = file; S.url = URL.createObjectURL(file);
   S.base = file.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]+/g, '_') || 'Film';
-  S.fps = 25; S.fpsKnown = false; S.clipsEdited = false;
+  S.fps = 25; S.fpsKnown = false; S.clipsEdited = false; S.wantCuts = false; S.wantStills = false;
+  cancelAnalysis(); S.ana = null;
   $('openError').hidden = true;
   player.src = S.url;
   try {
@@ -200,7 +202,6 @@ async function openFile(file) {
   document.title = file.name + ' – Loopstill';
   player.currentTime = 0;
   renderAll();
-  startAnalysis();
 }
 
 function unsupportedText(file) {
@@ -304,9 +305,11 @@ async function fallbackAnalysis(ana) {
 function finishAnalysis(ana, times, values, samples, exact) {
   if (ana.cancelled || ana.gen !== S.gen) return;
   Object.assign(ana, { running: false, progress: 1, times, values, samples, exact });
-  applyCuts();
-  applySuggestions();
+  if (S.wantCuts) applyCuts();
+  if (S.wantStills) applySuggestions(true);
   renderAll();
+  if (S.wantCuts && S.mode === 'gifs') announce('cuts');
+  if (S.wantStills && S.mode === 'stills') announce('stills');
   if (!exact) refineCuts(ana);
 }
 
@@ -359,7 +362,7 @@ async function refineCuts(ana) {
       }
       while (S.exporting && !ana.cancelled) await new Promise((r) => setTimeout(r, 300));
       if (ana.cancelled) return;
-      if (!S.clipsEdited) { applyCuts(); renderClips(); renderTimeline(); renderAnalysis(); }
+      if (!S.clipsEdited && S.wantCuts) { applyCuts(); renderClips(); renderTimeline(); renderAnalysis(); }
     }
   } catch (err) { console.warn(err); }
   ana.refining = false;
@@ -462,9 +465,11 @@ function analysisHTML() {
   if (ana.stopped) return `<div class="note">Analyse abgebrochen. <button class="btn link" data-act="restartAna" style="padding:0">Neu starten</button></div>`;
   if (!ana.times) return '';
   if (S.mode === 'gifs') {
+    if (!S.wantCuts) return '';
     const n = cutTimes().length;
     return `<div class="note">${n === 0 ? 'Keine Schnitte gefunden.' : `${n} Schnitt${n === 1 ? '' : 'e'} gefunden, ${S.clips.length} Clips.`}${ana.slow && ana.refining ? ' Schnitte werden noch aufs Frame genau gesetzt …' : ''}</div>`;
   }
+  if (!S.wantStills) return '';
   const auto = S.stills.filter((s) => !s.manual).length;
   return `<div class="note">${auto} Vorschl${auto === 1 ? 'ag' : 'äge'} aus ${S.ana.samples.length} bewerteten Frames.</div>`;
 }
@@ -536,7 +541,7 @@ function renderStills() {
   grid.textContent = '';
   if (!S.stills.length) {
     const running = S.ana && S.ana.running;
-    grid.innerHTML = `<div class="empty-note"><b>${running ? 'Suche die stärksten Bilder …' : 'Noch keine Screengrabs'}</b>${running ? 'Die Vorschläge erscheinen, sobald die Analyse durch ist.' : 'Setze eigene Screengrabs mit S an der Playhead-Position.'}</div>`;
+    grid.innerHTML = `<div class="empty-note"><b>${running ? 'Suche die stärksten Bilder …' : 'Noch keine Screengrabs'}</b>${running ? 'Die Vorschläge erscheinen, sobald die Analyse durch ist.' : '„Frames finden“ schlägt die stärksten Bilder des Films vor. Eigene Screengrabs setzt du mit S an der Playhead-Position.'}</div>`;
   } else {
     const g = document.createElement('div');
     g.className = 'grid';
@@ -677,14 +682,14 @@ $('quality').onchange = () => saveGif();
 $('sens').oninput = (e) => {
   S.detect.sensitivity = Number(e.target.value) / 100;
   $('sensVal').textContent = e.target.value + ' %';
-  if (S.ana && S.ana.times) { applyCuts(); S.clipsEdited = false; renderClips(); renderTimeline(); renderAnalysis(); if (!S.ana.exact) refineCuts(S.ana); }
+  if (S.wantCuts && S.ana && S.ana.times) { applyCuts(); S.clipsEdited = false; renderClips(); renderTimeline(); renderAnalysis(); if (!S.ana.exact) refineCuts(S.ana); }
 };
 $('sens').onchange = () => save('detect', S.detect);
 $('minLen').onchange = (e) => {
   S.detect.minLen = clamp(Number(e.target.value) || 0.5, 0.2, 5);
   e.target.value = S.detect.minLen;
   save('detect', S.detect);
-  if (S.ana && S.ana.times) { applyCuts(); S.clipsEdited = false; renderClips(); renderTimeline(); renderAnalysis(); if (!S.ana.exact) refineCuts(S.ana); }
+  if (S.wantCuts && S.ana && S.ana.times) { applyCuts(); S.clipsEdited = false; renderClips(); renderTimeline(); renderAnalysis(); if (!S.ana.exact) refineCuts(S.ana); }
 };
 $('resetClips').onclick = () => {
   S.clips = [{ id: newId(), start: 0, end: S.duration, o0: 0, o1: S.duration, sel: true }];
@@ -719,7 +724,7 @@ function renderStillSettings() {
 $('jpegQuality').oninput = (e) => { S.still.quality = Number(e.target.value); $('jpegQualityVal').textContent = e.target.value; };
 $('jpegQuality').onchange = () => save('still', S.still);
 $('maxWidth').onchange = (e) => { S.still.maxWidth = Number(e.target.value); save('still', S.still); };
-$('count').onchange = (e) => { S.still.count = Number(e.target.value); save('still', S.still); applySuggestions(); renderStills(); renderTimeline(); renderAnalysis(); };
+$('count').onchange = (e) => { S.still.count = Number(e.target.value); save('still', S.still); if (S.wantStills) applySuggestions(); renderStills(); renderTimeline(); renderAnalysis(); };
 $('stillsAll').onclick = () => { S.stills.forEach((s) => (s.sel = true)); renderStills(); renderTimeline(); };
 $('stillsNone').onclick = () => { S.stills.forEach((s) => (s.sel = false)); renderStills(); renderTimeline(); };
 $('stillsClear').onclick = () => { if (!S.stills.length) return; S.stills = []; S.activeStill = null; renderStills(); renderTimeline(); renderAnalysis(); };
@@ -857,17 +862,30 @@ $('splitBtn').onclick = splitAtPlayhead;
 $('mergeBtn').onclick = mergeWithNext;
 $('grabBtn').onclick = addStillAtPlayhead;
 $('grabBtn2').onclick = addStillAtPlayhead;
-$('findStills').onclick = () => {
-  if (!S.ana || !S.ana.samples) return;
-  applySuggestions(true);
-  renderStills(); renderTimeline(); renderAnalysis();
-  const n = S.stills.filter((s) => !s.manual).length;
-  toast(n ? `${n} Vorschl${n === 1 ? 'ag' : 'äge'} gefunden` : 'Keine passenden Frames gefunden');
-};
+function announce(kind) {
+  if (kind === 'cuts') { const n = cutTimes().length; toast(n ? `${n} Schnitt${n === 1 ? '' : 'e'} gefunden, ${S.clips.length} Clips` : 'Keine Schnitte gefunden'); }
+  else { const n = S.stills.filter((x) => !x.manual).length; toast(n ? `${n} Vorschl${n === 1 ? 'ag' : 'äge'} gefunden` : 'Keine passenden Frames gefunden'); }
+}
+// Analyse nur auf Knopfdruck. Sie liefert Schnitte und Screengrab-Kandidaten in einem Durchgang.
+function runAnalysisFor(kind) {
+  if (!S.url) return;
+  if (kind === 'cuts') S.wantCuts = true; else S.wantStills = true;
+  if (S.ana && S.ana.running) { renderAnalysis(); return; }
+  if (S.ana && S.ana.times) {
+    if (kind === 'cuts') { applyCuts(); if (!S.ana.exact) refineCuts(S.ana); } else applySuggestions(true);
+    renderAll(); announce(kind);
+    return;
+  }
+  startAnalysis();
+}
+$('findStills').onclick = () => runAnalysisFor('stills');
+$('detectCuts').onclick = () => { S.clipsEdited = false; runAnalysisFor('cuts'); };
 function renderFindButton() {
-  const ready = !!(S.ana && S.ana.samples);
-  $('findStills').disabled = !ready;
-  $('findStillsLabel').textContent = ready ? 'Frames finden' : (S.ana && S.ana.running ? 'Film wird analysiert …' : 'Frames finden');
+  const running = !!(S.ana && S.ana.running);
+  $('findStills').disabled = running;
+  $('detectCuts').disabled = running;
+  $('findStillsLabel').textContent = running ? 'Film wird analysiert …' : 'Frames finden';
+  $('detectCutsLabel').textContent = running ? 'Film wird analysiert …' : 'Schnitte erkennen';
 }
 function showWhole() { S.view = { a: 0, b: S.duration }; renderTimeline(); }
 function zoomToClip() {

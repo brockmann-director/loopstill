@@ -222,6 +222,9 @@ footer a{color:var(--muted)}
         <h2>Schnitterkennung <span class="grow"></span>
           <button class="icon" id="resetClips" title="Zurücksetzen: ganzer Film als ein Clip" data-icon="reset"></button></h2>
         <div class="block" id="anaBlockG"></div>
+        <div class="row" style="border-top:0">
+          <button class="btn" id="detectCuts" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><span data-icon="scissors" style="display:inline-grid"></span><span id="detectCutsLabel">Schnitte erkennen</span></button>
+        </div>
         <div class="row"><label for="sens">Empfindlichkeit</label><input type="range" id="sens" min="0" max="100" step="1"><span class="val mono" id="sensVal"></span></div>
         <div class="row"><label for="minLen">Kürzeste Einstellung</label><input type="number" id="minLen" min="0.2" max="5" step="0.1"><span class="muted">s</span></div>
       </div>
