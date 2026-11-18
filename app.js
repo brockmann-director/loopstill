@@ -23,6 +23,7 @@ const ICONS = {
   download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
   target: '<circle cx="12" cy="12" r="7"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>',
   sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
+  unmark: '<path d="M8 5H5v14h3M16 5h3v14h-3"/><path d="M10 9.5l4 5M14 9.5l-4 5"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
@@ -187,7 +188,7 @@ async function openFile(file) {
     return;
   }
   S.duration = player.duration; S.vw = player.videoWidth; S.vh = player.videoHeight;
-  S.clips = [{ id: newId(), start: 0, end: S.duration, sel: true }];
+  S.clips = [{ id: newId(), start: 0, end: S.duration, o0: 0, o1: S.duration, sel: true }];
   S.activeClip = S.clips[0].id;
   S.stills = []; S.activeStill = null;
   S.view = { a: 0, b: S.duration };
@@ -325,7 +326,7 @@ function applyCuts() {
   for (let k = 0; k < bounds.length - 1; k++) {
     if (bounds[k + 1] - bounds[k] < 0.02) continue;
     const start = bounds[k];
-    S.clips.push({ id: newId(), start, end: bounds[k + 1], sel: old.has(Math.round(start * 100)) ? old.get(Math.round(start * 100)) : true });
+    S.clips.push({ id: newId(), start, end: bounds[k + 1], o0: start, o1: bounds[k + 1], sel: old.has(Math.round(start * 100)) ? old.get(Math.round(start * 100)) : true });
   }
   const t = player.currentTime;
   S.activeClip = (S.clips.find((c) => t >= c.start && t < c.end) || S.clips[0]).id;
@@ -508,13 +509,14 @@ function renderClips() {
     chk.innerHTML = svg('check');
     chk.onclick = (e) => { e.stopPropagation(); c.sel = !c.sel; renderClips(); renderTimeline(); renderGifSettings(); };
     const info = document.createElement('div');
-    info.innerHTML = `<div class="t1">${S.clips.length === 1 ? 'Ganzer Film' : 'Clip ' + (i + 1)}</div>
+    info.innerHTML = `<div class="t1">${S.clips.length === 1 && c.start < 0.01 && c.end > S.duration - 0.01 ? 'Ganzer Film' : 'Clip ' + (i + 1)}</div>
       <div class="t2 mono">${tc(c.start)} – ${tc(c.end)} · ${secs(c.end - c.start)}</div>`;
     row.append(chk, thumbImg(c.start + Math.min(0.4, (c.end - c.start) / 2)), info);
     row.onclick = () => selectClip(c, true);
     frag.appendChild(row);
   });
   list.appendChild(frag);
+  if (!S.clips.length) list.innerHTML = '<div class="empty-note"><b>Keine Clips</b>Mit ↺ unter Schnitterkennung kommt der ganze Film zurück.</div>';
   const sel = S.clips.filter((c) => c.sel).length;
   $('clipCount').textContent = `${S.clips.length} Clip${S.clips.length === 1 ? '' : 's'} · ${sel} ausgewählt`;
   renderExportButtons();
@@ -685,11 +687,23 @@ $('minLen').onchange = (e) => {
   if (S.ana && S.ana.times) { applyCuts(); S.clipsEdited = false; renderClips(); renderTimeline(); renderAnalysis(); if (!S.ana.exact) refineCuts(S.ana); }
 };
 $('resetClips').onclick = () => {
-  S.clips = [{ id: newId(), start: 0, end: S.duration, sel: true }];
+  S.clips = [{ id: newId(), start: 0, end: S.duration, o0: 0, o1: S.duration, sel: true }];
   S.activeClip = S.clips[0].id; S.clipsEdited = true;
   showWhole(); renderClips(); renderAnalysis();
 };
 $('clipsAll').onclick = () => { S.clips.forEach((c) => (c.sel = true)); renderClips(); renderTimeline(); };
+$('clipsDelete').onclick = () => {
+  const n = S.clips.filter((c) => c.sel).length;
+  if (!n) { toast('Keine Clips ausgewählt'); return; }
+  removeClips(S.clips.filter((c) => c.sel));
+  toast(`${n} Clip${n === 1 ? '' : 's'} gelöscht. Mit ↺ unter Schnitterkennung kommt der ganze Film zurück.`, 4000);
+};
+function removeClips(list) {
+  S.clips = S.clips.filter((c) => !list.includes(c));
+  S.clipsEdited = true;
+  if (!S.clips.some((c) => c.id === S.activeClip)) S.activeClip = S.clips.length ? S.clips[0].id : null;
+  renderClips(); renderTimeline(); renderGifSettings(); renderAnalysis();
+}
 $('clipsNone').onclick = () => { S.clips.forEach((c) => (c.sel = false)); renderClips(); renderTimeline(); };
 
 // Screengrab-Einstellungen
@@ -789,21 +803,40 @@ function setEdge(edge) {
   const c = activeClip();
   if (!c) return;
   const i = S.clips.indexOf(c);
-  const prevEnd = i > 0 ? S.clips[i - 1].end : 0;
-  const nextStart = i < S.clips.length - 1 ? S.clips[i + 1].start : S.duration;
   const f = frameIndex(player.currentTime);
-  if (edge === 'in') c.start = clamp(f / S.fps, prevEnd, c.end - frameDur());
-  else c.end = clamp((f + 1) / S.fps, c.start + frameDur(), nextStart);
+  // In/Out dürfen über die Nachbar-Clips hinaus (Clips können sich überlappen).
+  if (edge === 'in') {
+    const t = f / S.fps;
+    if (t >= c.end) c.end = Math.min(S.duration, t + frameDur() * Math.max(1, Math.round((c.end - c.start) * S.fps)));
+    c.start = clamp(t, 0, c.end - frameDur());
+  } else {
+    const t = (f + 1) / S.fps;
+    if (t <= c.start) c.start = Math.max(0, t - (c.end - c.start));
+    c.end = clamp(t, c.start + frameDur(), S.duration);
+  }
   S.clipsEdited = true;
+  sortClips();
   renderClips(); renderTimeline(); renderGifSettings();
+}
+function sortClips() { S.clips.sort((a, b) => a.start - b.start || a.end - b.end); }
+/** In/Out des Clips aufheben: zurück auf die ursprüngliche Einstellung (bzw. den ganzen Film). */
+function clearMarks() {
+  const c = activeClip();
+  if (!c) return;
+  const o0 = c.o0 != null ? c.o0 : 0, o1 = c.o1 != null ? c.o1 : S.duration;
+  if (Math.abs(c.start - o0) < 1e-6 && Math.abs(c.end - o1) < 1e-6) { toast('Keine Markierung gesetzt'); return; }
+  c.start = o0; c.end = o1;
+  sortClips();
+  renderClips(); renderTimeline(); renderGifSettings();
+  toast(S.clips.length === 1 ? 'Markierung aufgehoben: ganzer Film' : 'Markierung aufgehoben: ganze Einstellung');
 }
 function splitAtPlayhead() {
   const t = frameIndex(player.currentTime) / S.fps;
   const c = S.clips.find((x) => t > x.start + frameDur() / 2 && t < x.end - frameDur() / 2);
   if (!c) return;
   const i = S.clips.indexOf(c);
-  const right = { id: newId(), start: t, end: c.end, sel: c.sel };
-  c.end = t;
+  const right = { id: newId(), start: t, end: c.end, o0: t, o1: c.o1 != null ? Math.max(t, c.o1) : c.end, sel: c.sel };
+  c.end = t; c.o1 = t;
   S.clips.splice(i + 1, 0, right);
   S.activeClip = right.id; S.clipsEdited = true;
   renderClips(); renderTimeline(); renderGifSettings(); renderAnalysis();
@@ -812,13 +845,14 @@ function mergeWithNext() {
   const c = activeClip();
   const i = S.clips.indexOf(c);
   if (i < 0 || i >= S.clips.length - 1) return;
-  c.end = S.clips[i + 1].end;
+  c.end = S.clips[i + 1].end; c.o1 = S.clips[i + 1].o1 != null ? S.clips[i + 1].o1 : c.end;
   S.clips.splice(i + 1, 1);
   S.clipsEdited = true;
   renderClips(); renderTimeline(); renderGifSettings(); renderAnalysis();
 }
 $('inBtn').onclick = () => setEdge('in');
 $('outBtn').onclick = () => setEdge('out');
+$('clearBtn').onclick = clearMarks;
 $('splitBtn').onclick = splitAtPlayhead;
 $('mergeBtn').onclick = mergeWithNext;
 $('grabBtn').onclick = addStillAtPlayhead;
@@ -968,9 +1002,19 @@ tl.addEventListener('pointerdown', (e) => {
   tl.setPointerCapture(e.pointerId);
   player.pause();
   if (S.mode === 'gifs') {
-    const c = activeClip();
-    if (c && Math.abs(px - tlX(c.start)) < 8) { drag = { kind: 'start', c }; return; }
-    if (c && Math.abs(px - tlX(c.end)) < 8) { drag = { kind: 'end', c }; return; }
+    const ac = activeClip();
+    const order = ac ? [ac, ...S.clips.filter((x) => x !== ac)] : S.clips;
+    for (const c of order) {
+      const ds = Math.abs(px - tlX(c.start)), de = Math.abs(px - tlX(c.end));
+      if (Math.min(ds, de) >= 8) continue;
+      // An einer Schnittkante: links davon greift das Out des linken Clips, rechts das In des rechten
+      let kind = ds < de ? 'start' : 'end';
+      if (c !== ac && ds < 8 && de >= 8 && px < tlX(c.start)) continue;
+      if (c !== ac && de < 8 && ds >= 8 && px > tlX(c.end)) continue;
+      if (c !== ac) selectClip(c, false);
+      drag = { kind, c };
+      return;
+    }
     const hit = S.clips.find((x) => t >= x.start && t < x.end);
     if (hit && hit.id !== S.activeClip) selectClip(hit, false);
   } else {
@@ -987,7 +1031,7 @@ tl.addEventListener('pointermove', (e) => {
   if (!drag) {
     let cur = 'pointer';
     const c = S.mode === 'gifs' && activeClip();
-    if (c && (Math.abs(px - tlX(c.start)) < 8 || Math.abs(px - tlX(c.end)) < 8)) cur = 'ew-resize';
+    if (c && S.clips.some((x) => Math.abs(px - tlX(x.start)) < 8 || Math.abs(px - tlX(x.end)) < 8)) cur = 'ew-resize';
     tl.style.cursor = cur;
     return;
   }
@@ -995,11 +1039,9 @@ tl.addEventListener('pointermove', (e) => {
   if (drag.kind === 'scrub') setTime(t);
   else if (drag.kind === 'start' || drag.kind === 'end') {
     const c = drag.c, i = S.clips.indexOf(c);
-    const prevEnd = i > 0 ? S.clips[i - 1].end : 0;
-    const nextStart = i < S.clips.length - 1 ? S.clips[i + 1].start : S.duration;
     const ft = Math.round(t * S.fps) / S.fps;
-    if (drag.kind === 'start') { c.start = clamp(ft, prevEnd, c.end - frameDur()); setTime(c.start + 0.001); }
-    else { c.end = clamp(ft, c.start + frameDur(), nextStart); setTime(c.end - frameDur() / 2); }
+    if (drag.kind === 'start') { c.start = clamp(ft, 0, c.end - frameDur()); setTime(c.start + 0.001); }
+    else { c.end = clamp(ft, c.start + frameDur(), S.duration); setTime(c.end - frameDur() / 2); }
     S.clipsEdited = true;
     $('tlLeft').textContent = `In ${tc(c.start)}  ·  Out ${tc(c.end)}  ·  ${secs(c.end - c.start)}`;
   } else if (drag.kind === 'still') {
@@ -1009,7 +1051,7 @@ tl.addEventListener('pointermove', (e) => {
 });
 const endDrag = () => {
   if (!drag) return;
-  if (drag.kind === 'start' || drag.kind === 'end') { renderClips(); renderGifSettings(); }
+  if (drag.kind === 'start' || drag.kind === 'end') { sortClips(); renderClips(); renderGifSettings(); }
   if (drag.kind === 'still' && drag.moved) { S.stills.sort((a, b) => a.t - b.t); renderStills(); }
   drag = null;
 };
@@ -1038,6 +1080,7 @@ tl.addEventListener('wheel', (e) => {
 // ---------- Tastatur ----------
 window.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') { e.preventDefault(); fileInput.click(); return; }
+  if (S.url && S.mode === 'gifs' && e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyX') { e.preventDefault(); clearMarks(); return; }
   if (!S.url || e.metaKey || e.ctrlKey || e.altKey) return;
   const tag = (e.target.tagName || '').toLowerCase();
   if (tag === 'input' && e.target.type !== 'range' || tag === 'textarea') return;
@@ -1049,6 +1092,8 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'i' && S.mode === 'gifs') setEdge('in');
   else if (k === 'o' && S.mode === 'gifs') setEdge('out');
   else if (k === 'b' && S.mode === 'gifs') splitAtPlayhead();
+  else if (k === 'g' && S.mode === 'gifs') clearMarks();
+  else if ((e.key === 'Backspace' || e.key === 'Delete') && S.mode === 'gifs') { const c = S.clips.find((x) => x.id === S.activeClip); if (c) { e.preventDefault(); removeClips([c]); } }
   else if (k === 's') addStillAtPlayhead();
   else if ((e.key === 'Backspace' || e.key === 'Delete') && S.mode === 'stills') { const s = activeStill(); if (s) { e.preventDefault(); removeStill(s); } }
 });

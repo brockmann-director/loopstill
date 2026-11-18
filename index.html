@@ -185,6 +185,7 @@ footer a{color:var(--muted)}
       <span data-show="gifs" style="display:contents">
         <button class="btn" id="inBtn" title="In-Punkt auf Playhead (I)">In</button>
         <button class="btn" id="outBtn" title="Out-Punkt auf Playhead (O)">Out</button>
+        <button class="icon" id="clearBtn" title="Markierung aufheben (⌥X oder G)" data-icon="unmark"></button>
         <button class="icon" id="splitBtn" title="Am Playhead teilen (B)" data-icon="scissors"></button>
         <button class="icon" id="mergeBtn" title="Mit nächstem Clip verbinden" data-icon="link"></button>
         <span class="sep"></span>
@@ -203,6 +204,7 @@ footer a{color:var(--muted)}
     <div data-show="gifs" class="listhead">
       <span id="clipCount"></span><span class="grow"></span>
       <button class="btn link" id="clipsAll">Alle</button><button class="btn link" id="clipsNone">Keine</button>
+      <button class="icon danger" id="clipsDelete" title="Ausgewählte Clips aus der Liste löschen" data-icon="trash"></button>
     </div>
     <div data-show="gifs" class="scroll" id="clipList"></div>
     <div data-show="stills" class="listhead">
@@ -290,7 +292,7 @@ footer a{color:var(--muted)}
 
 <footer>
   <span>Läuft komplett im Browser, nichts wird hochgeladen.</span>
-  <span>Tasten: <span class="kbd">Leertaste</span> <span class="kbd">← →</span> <span class="kbd">I</span> <span class="kbd">O</span> <span class="kbd">B</span> <span class="kbd">S</span></span>
+  <span>Tasten: <span class="kbd">Leertaste</span> <span class="kbd">← →</span> <span class="kbd">I</span> <span class="kbd">O</span> <span class="kbd">B</span> <span class="kbd">G</span> <span class="kbd">S</span></span>
   <span style="margin-left:auto">GIF-Encoder <a href="https://gif.ski" target="_blank" rel="noopener">gifski</a> · <a href="https://github.com/brockmann-director/loopstill" target="_blank" rel="noopener">Quellcode</a></span>
 </footer>
 
