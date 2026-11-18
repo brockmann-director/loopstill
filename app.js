@@ -167,7 +167,7 @@ async function openFile(file) {
   cancelAnalysis(); cancelExport();
   const gen = ++S.gen;
   if (S.url) URL.revokeObjectURL(S.url);
-  thumbCache.clear(); thumbQueue.length = 0;
+  thumbCache.clear(); thumbQueue.length = 0; stripImgs.clear();
   S.file = file; S.url = URL.createObjectURL(file);
   S.base = file.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]+/g, '_') || 'Film';
   S.fps = 25; S.fpsKnown = false; S.clipsEdited = false;
@@ -378,6 +378,8 @@ function applySuggestions(fresh) {
 
 // ---------- Vorschaubilder ----------
 const thumbCache = new Map();
+const stripImgs = new Map();
+let stripGen = 0;
 const thumbQueue = [];
 let thumbBusy = false;
 const thumbCanvas = document.createElement('canvas');
@@ -398,10 +400,12 @@ function thumbImg(t, cls = 'thumb') {
   if (cached) img.src = cached; else thumbObserver.observe(img);
   return img;
 }
-function requestThumb(t) {
+function requestThumb(t, strip) {
   const key = thumbKey(t);
   if (thumbCache.has(key)) return;
-  thumbQueue.push({ t, key });
+  const queued = thumbQueue.find((j) => j.key === key);
+  if (queued) { if (strip) { queued.strip = true; queued.gen = stripGen; } return; }
+  thumbQueue.push({ t, key, strip: !!strip, gen: stripGen });
   pumpThumbs();
 }
 async function pumpThumbs() {
@@ -412,7 +416,8 @@ async function pumpThumbs() {
     while (thumbQueue.length) {
       const job = thumbQueue.pop(); // zuletzt sichtbar zuerst
       if (thumbCache.has(job.key)) continue;
-      if (!document.querySelector(`img[data-thumb="${job.key}"]`)) continue;
+      const wanted = (job.strip && job.gen === stripGen) || document.querySelector(`img[data-thumb="${job.key}"]`);
+      if (!wanted) continue;
       await seek(thumbV, job.t);
       if (gen !== S.gen) return;
       const w = 320, h = Math.max(2, Math.round(w * S.vh / S.vw));
@@ -422,6 +427,8 @@ async function pumpThumbs() {
       const url = thumbCanvas.toDataURL('image/jpeg', 0.8);
       thumbCache.set(job.key, url);
       document.querySelectorAll(`img[data-thumb="${job.key}"]`).forEach((img) => { img.src = url; });
+      if (job.strip) { const im = new Image(); im.onload = renderTimeline; im.src = url; stripImgs.set(job.key, im); }
+      renderTimeline();
     }
   } catch (err) { console.warn(err); }
   finally { thumbBusy = false; }
@@ -851,6 +858,39 @@ function tlX(t) { return ((t - S.view.a) / (S.view.b - S.view.a)) * tl.clientWid
 function tlT(x) { return S.view.a + (x / tl.clientWidth) * (S.view.b - S.view.a); }
 let tlRaf = 0;
 function renderTimeline() { if (!tlRaf) tlRaf = requestAnimationFrame(drawTimeline); }
+/** Vorschaubilder entlang der sichtbaren Timeline (wie in FrameReel). */
+let stripKeyPrev = '';
+function drawFilmstrip(x, top, h, W) {
+  x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(0, top, W, h);
+  if (!S.vw) return;
+  const tileW = Math.max(24, h * S.vw / S.vh);
+  const n = Math.ceil(W / tileW);
+  const span = S.view.b - S.view.a;
+  const q = span / n;
+  const viewKey = n + ':' + q.toFixed(4);
+  if (viewKey !== stripKeyPrev) { stripKeyPrev = viewKey; stripGen++; }
+  const t0 = Math.floor(S.view.a / q);
+  x.save();
+  x.beginPath(); x.rect(0, top, W, h); x.clip();
+  const missing = [];
+  for (let k = t0; k * q < S.view.b; k++) {
+    const t = Math.min(S.duration - 0.01, (k + 0.5) * q);
+    const key = thumbKey(t);
+    const px = tlX(k * q), pw = tlX((k + 1) * q) - px;
+    const im = stripImgs.get(key);
+    if (im && im.complete && im.naturalWidth) {
+      const ar = im.naturalWidth / im.naturalHeight;
+      let dw = pw, dh = pw / ar;
+      if (dh < h) { dh = h; dw = h * ar; }
+      x.drawImage(im, px + (pw - dw) / 2, top + (h - dh) / 2, dw, dh);
+    } else if (thumbCache.has(key)) {
+      const img = new Image(); img.onload = renderTimeline; img.src = thumbCache.get(key); stripImgs.set(key, img);
+    } else missing.push(t);
+  }
+  x.restore();
+  // Mitte zuerst laden, Rand zuletzt (Warteschlange arbeitet von hinten)
+  missing.reverse().forEach((t) => requestThumb(t, true));
+}
 function drawTimeline() {
   tlRaf = 0;
   if (!S.duration || $('studio').hidden) return;
@@ -872,12 +912,13 @@ function drawTimeline() {
     x.fillText(tc(t), px + 3, 10);
   }
   const top = 14, h = H - top - 2;
+  drawFilmstrip(x, top, h, W);
   if (S.mode === 'gifs') {
     S.clips.forEach((c, i) => {
       const x0 = tlX(c.start), x1 = tlX(c.end);
       if (x1 < 0 || x0 > W) return;
-      x.fillStyle = c.sel ? (i % 2 ? 'rgba(255,255,255,.17)' : 'rgba(255,255,255,.13)') : 'rgba(255,255,255,.05)';
-      x.fillRect(x0 + 0.5, top, Math.max(1, x1 - x0 - 1), h);
+      if (!c.sel) { x.fillStyle = 'rgba(15,15,16,.72)'; x.fillRect(x0, top, x1 - x0, h); }
+      if (i > 0) { x.fillStyle = '#18181a'; x.fillRect(x0 - 1, top, 2, h); }
     });
     const c = activeClip();
     if (c) {
@@ -890,7 +931,7 @@ function drawTimeline() {
       x.fillRect(x0 + 2, top + h / 2 - 6, 1, 12); x.fillRect(x1 - 3, top + h / 2 - 6, 1, 12);
     }
   } else {
-    x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(0, top, W, h);
+    x.fillStyle = 'rgba(15,15,16,.35)'; x.fillRect(0, top, W, h);
     // Schnitte zur Orientierung
     x.fillStyle = 'rgba(255,255,255,.12)';
     for (const ct of cutTimes()) x.fillRect(tlX(ct.t), top, 1, h);
