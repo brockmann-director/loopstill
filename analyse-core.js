@@ -33,22 +33,37 @@
     return Math.min(1, 0.5 * h + l);
   }
 
-  /** Schnitte aus den Frame-Differenzen (times[i] = erstes Frame nach dem Vergleich). */
+  /** Schnitte aus den Frame-Differenzen (times[i] = erstes Frame nach dem Vergleich).
+      Ein Schnitt ist ein einzelner Ausreißer: deutlich über dem Median der Nachbarn
+      (Kamerabewegung hebt den Median mit an und löst deshalb keinen Schnitt aus). */
   function detectCuts(times, values, sensitivity, minSceneLength, duration) {
-    const threshold = 0.45 - 0.35 * sensitivity;
+    const s = Math.min(1, Math.max(0, sensitivity));
+    const minAbs = 0.06 - 0.045 * s;   // 50 %: 0,0375
+    const ratio = 5 - 4 * s;           // 50 %: 3×
+    const minRise = 0.07 - 0.05 * s;   // 50 %: 0,045 über dem Median
+    const R = 8;
     const cuts = [];
-    let lastCut = 0;
+    let lastCut = -Infinity;
     const count = values.length;
+    const win = [];
     for (let i = 0; i < count; i++) {
-      const lo = Math.max(0, i - 6), hi = Math.min(count - 1, i + 6);
-      let sum = 0, k = 0;
-      for (let j = lo; j <= hi; j++) if (j !== i) { sum += values[j]; k++; }
-      const localMean = k ? sum / k : 0;
-      const v = values[i], t = times[i];
-      if (v > threshold && v > localMean * 2 && t - lastCut >= minSceneLength) {
-        cuts.push(i);
-        lastCut = t;
+      const v = values[i];
+      if (v < minAbs) continue;
+      if ((i > 0 && values[i - 1] > v) || (i < count - 1 && values[i + 1] > v)) continue; // nur Spitzen
+      win.length = 0;
+      for (let j = Math.max(0, i - R); j <= Math.min(count - 1, i + R); j++) if (Math.abs(j - i) > 1) win.push(values[j]);
+      win.sort((a, b) => a - b);
+      const median = win.length ? win[win.length >> 1] : 0;
+      if (v < median * ratio || v - median < minRise) continue;
+      const t = times[i];
+      if (t < minSceneLength) continue;
+      if (t - lastCut < minSceneLength) {
+        // Zwei Kandidaten zu dicht: den stärkeren behalten
+        if (cuts.length && v > values[cuts[cuts.length - 1]]) { cuts[cuts.length - 1] = i; lastCut = t; }
+        continue;
       }
+      cuts.push(i);
+      lastCut = t;
     }
     if (cuts.length && duration - times[cuts[cuts.length - 1]] < minSceneLength) cuts.pop();
     return cuts; // Indizes in times/values
@@ -144,12 +159,18 @@
   }
 
   /** Bester Frame je Einstellung, Dubletten raus, Top N (0 = alle Einstellungen). */
-  function pickStills(samples, count) {
+  function pickStills(samples, count, cutTimes) {
     if (!samples.length) return [];
     samples = samples.slice().sort((a, b) => a.t - b.t);
+    const cuts = (cutTimes || []).slice().sort((a, b) => a - b);
     const shots = [[0]];
+    let c = 0;
+    while (c < cuts.length && cuts[c] <= samples[0].t) c++;
     for (let i = 1; i < samples.length; i++) {
-      if (sigDistance(samples[i - 1].m.sig, samples[i].m.sig) > 0.14) shots.push([i]);
+      // Neue Einstellung: erkannter Schnitt dazwischen oder großer Bildsprung
+      let cut = false;
+      while (c < cuts.length && cuts[c] <= samples[i].t) { cut = true; c++; }
+      if (cut || sigDistance(samples[i - 1].m.sig, samples[i].m.sig) > 0.14) shots.push([i]);
       else shots[shots.length - 1].push(i);
     }
     const global = samples.map(s => s.m.sharpness).sort((a, b) => a - b);

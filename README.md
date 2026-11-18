@@ -2,7 +2,7 @@
 
 GIFs und Screengrabs aus Filmen, direkt im Browser. Die Browser-Schwester der Mac-App FrameReel (nur die Reiter GIFs und Screengrabs), für alle, die keine Apps installieren dürfen.
 
-**Online:** https://brockmann-director.github.io/loopstill/
+**Online:** https://loopstill.thisisjan.com/ (auch https://brockmann-director.github.io/loopstill/)
 
 Alles läuft lokal im Browser. Das Video wird nirgendwohin hochgeladen, auch die Analyse und das GIF-Encoding passieren auf dem eigenen Rechner.
 

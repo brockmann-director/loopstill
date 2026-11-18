@@ -22,6 +22,7 @@ const ICONS = {
   reset: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 4v4h4"/>',
   download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
   target: '<circle cx="12" cy="12" r="7"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
@@ -358,14 +359,14 @@ async function refineCuts(ana) {
   ana.refining = false;
 }
 
-function applySuggestions() {
+function applySuggestions(fresh) {
   if (!S.ana || !S.ana.samples) return;
-  const picks = A.pickStills(S.ana.samples, S.still.count);
+  const picks = A.pickStills(S.ana.samples, S.still.count, cutTimes().map((c) => c.t));
   const manual = S.stills.filter((s) => s.manual);
   const oldSel = new Map(S.stills.map((s) => [Math.round(s.t * 10), s.sel]));
   const auto = picks
     .filter((p) => !manual.some((m) => Math.abs(m.t - p.t) < 0.5))
-    .map((p) => ({ id: newId(), t: p.t, score: p.score, manual: false, sel: oldSel.has(Math.round(p.t * 10)) ? oldSel.get(Math.round(p.t * 10)) : true }));
+    .map((p) => ({ id: newId(), t: p.t, score: p.score, manual: false, sel: !fresh && oldSel.has(Math.round(p.t * 10)) ? oldSel.get(Math.round(p.t * 10)) : true }));
   S.stills = [...manual, ...auto].sort((a, b) => a.t - b.t);
   if (!S.stills.some((s) => s.id === S.activeStill)) S.activeStill = null;
 }
@@ -461,6 +462,7 @@ function renderAnalysis() {
     el.hidden = !el.innerHTML.trim();
     paintIcons(el);
   }
+  renderFindButton();
 }
 function renderAnalysisProgress() {
   const ana = S.ana;
@@ -808,6 +810,19 @@ $('outBtn').onclick = () => setEdge('out');
 $('splitBtn').onclick = splitAtPlayhead;
 $('mergeBtn').onclick = mergeWithNext;
 $('grabBtn').onclick = addStillAtPlayhead;
+$('grabBtn2').onclick = addStillAtPlayhead;
+$('findStills').onclick = () => {
+  if (!S.ana || !S.ana.samples) return;
+  applySuggestions(true);
+  renderStills(); renderTimeline(); renderAnalysis();
+  const n = S.stills.filter((s) => !s.manual).length;
+  toast(n ? `${n} Vorschl${n === 1 ? 'ag' : 'äge'} gefunden` : 'Keine passenden Frames gefunden');
+};
+function renderFindButton() {
+  const ready = !!(S.ana && S.ana.samples);
+  $('findStills').disabled = !ready;
+  $('findStillsLabel').textContent = ready ? 'Frames finden' : (S.ana && S.ana.running ? 'Film wird analysiert …' : 'Frames finden');
+}
 function showWhole() { S.view = { a: 0, b: S.duration }; renderTimeline(); }
 function zoomToClip() {
   if (S.mode === 'gifs') {

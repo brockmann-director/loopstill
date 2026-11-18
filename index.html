@@ -50,6 +50,8 @@ button,select,input{font:inherit;color:inherit}
 .primary:hover{background:var(--accent-hover)}
 .primary:disabled{background:var(--raised-2);color:var(--dim);cursor:default}
 .primary svg{width:17px;height:17px}
+.btn svg{width:15px;height:15px}
+.btn:disabled{opacity:.45;cursor:default}
 
 /* Startbildschirm */
 .drop{flex:1;display:grid;place-items:center;padding:24px 16px}
@@ -252,6 +254,10 @@ footer a{color:var(--muted)}
         <h2>Cinematic Frames</h2>
         <div class="block" id="anaBlockS"></div>
         <div class="row"><label for="count">Vorschläge</label><select id="count"></select></div>
+        <div class="row" style="gap:6px">
+          <button class="btn" id="findStills" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><span data-icon="sparkle" style="display:inline-grid"></span><span id="findStillsLabel">Frames finden</span></button>
+          <button class="icon" id="grabBtn2" title="Screengrab am Playhead (S)" data-icon="camera"></button>
+        </div>
         <div class="note">Bewertet Schärfe, Kontrast, Farbe, Belichtung und Bildaufbau über den ganzen Film, ähnliche Bilder fliegen raus. Eigene Screengrabs setzt du mit <span class="kbd">S</span> an der Playhead-Position.</div>
       </div>
 
