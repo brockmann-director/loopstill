@@ -42,6 +42,7 @@ button,select,input{font:inherit;color:inherit}
 .icon:disabled{opacity:.35;cursor:default;background:none}
 .icon svg{width:17px;height:17px}
 .icon.danger:hover{color:#ff7a6b}
+.icon.on{color:var(--accent)}
 .btn{height:28px;padding:0 11px;border:1px solid var(--line);border-radius:7px;background:var(--raised);cursor:pointer;font-weight:500;white-space:nowrap}
 .btn:hover{background:var(--raised-2)}
 .btn.link{border:0;background:none;color:var(--muted);padding:0 6px;height:22px}
@@ -180,6 +181,7 @@ footer a{color:var(--muted)}
       <button class="icon" id="playBtn" title="Abspielen (Leertaste)" data-icon="play"></button>
       <button class="icon" id="prevFrame" title="1 Frame zurück (←)" data-icon="left"></button>
       <button class="icon" id="nextFrame" title="1 Frame vor (→)" data-icon="right"></button>
+      <button class="icon" id="loopBtn" title="Clip-Schleife" data-icon="loop" data-show="gifs"></button>
       <span class="tc mono" id="tc">00:00:00</span>
       <span class="grow"></span>
       <span data-show="gifs" style="display:contents">

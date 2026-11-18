@@ -24,6 +24,7 @@ const ICONS = {
   target: '<circle cx="12" cy="12" r="7"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>',
   sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
   unmark: '<path d="M8 5H5v14h3M16 5h3v14h-3"/><path d="M10 9.5l4 5M14 9.5l-4 5"/>',
+  loop: '<path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
@@ -745,8 +746,29 @@ $('tabs').onclick = (e) => {
 // ---------- Player & Transport ----------
 function setTime(t) {
   player.currentTime = clamp(t, 0, Math.max(0, S.duration - 0.001));
+  followPlayhead(player.currentTime);
   renderTime(); renderTimeline();
 }
+/** Der aktive Clip folgt der Playhead-Position (sonst springt Play zurück in den alten Clip). */
+function followPlayhead(t) {
+  if (S.mode !== 'gifs' || drag && (drag.kind === 'start' || drag.kind === 'end')) return;
+  const c = activeClip();
+  if (c && t >= c.start && t < c.end) return;
+  let hit = null;
+  for (const x of S.clips) if (t >= x.start && t < x.end && (!hit || x.start > hit.start)) hit = x;
+  if (!hit || hit.id === S.activeClip) return;
+  S.activeClip = hit.id;
+  document.querySelectorAll('.clip').forEach((r) => r.classList.toggle('active', Number(r.dataset.id) === hit.id));
+  renderGifSettings();
+}
+const ui = load('ui', { loop: false });
+function renderLoop() {
+  const b = $('loopBtn');
+  b.classList.toggle('on', !!ui.loop);
+  b.title = ui.loop ? 'Clip-Schleife an: Play wiederholt den aktiven Clip' : 'Clip-Schleife aus: Play läuft durch den ganzen Film';
+}
+$('loopBtn').onclick = () => { ui.loop = !ui.loop; save('ui', ui); renderLoop(); toast(ui.loop ? 'Clip-Schleife an' : 'Clip-Schleife aus'); };
+renderLoop();
 function renderTime() {
   $('tc').textContent = tc(player.currentTime || 0);
   setIcon($('playBtn'), player.paused ? 'play' : 'pause');
@@ -756,7 +778,8 @@ function togglePlay() {
   if (!S.url) return;
   if (player.paused) {
     const c = activeClip();
-    if (S.mode === 'gifs' && c && (player.currentTime < c.start || player.currentTime >= c.end - 0.02)) player.currentTime = c.start + 0.001;
+    if (ui.loop && S.mode === 'gifs' && c && (player.currentTime < c.start || player.currentTime >= c.end - 0.02)) player.currentTime = c.start + 0.001;
+    else if (player.currentTime >= S.duration - 0.05) player.currentTime = 0;
     player.play().catch(() => {});
   } else player.pause();
 }
@@ -768,7 +791,8 @@ let fpsProbe = null;
 function tick() {
   if (player.paused) return;
   const c = activeClip();
-  if (S.mode === 'gifs' && c && player.currentTime >= c.end - 0.01) player.currentTime = c.start + 0.001; // Clip loopen
+  if (ui.loop && S.mode === 'gifs' && c && player.currentTime >= c.end - 0.01) player.currentTime = c.start + 0.001; // Clip loopen
+  else followPlayhead(player.currentTime);
   renderTime(); renderTimeline();
   requestAnimationFrame(tick);
 }
