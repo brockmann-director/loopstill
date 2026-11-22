@@ -8,28 +8,41 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const pad = (n, l = 2) => String(n).padStart(l, '0');
 
 // ---------- Icons ----------
+// Farbige Icons mit dunkler Outline (Retro-Pop). Linien: dunkel, Flächen: Palette.
+const C = { ink: '#2b2523', o: '#e1653a', y: '#ecbc4a', b: '#4a90c9', c: '#fbf7f1', p: '#e98aa0', g: '#7cc28a' };
+const dbl = (d, color, w = 2.2) => `<path d="${d}" stroke="${C.ink}" stroke-width="${w + 2.4}"/><path d="${d}" stroke="${color}" stroke-width="${w}"/>`;
 const ICONS = {
-  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-  play: '<path d="M7 5v14l12-7z" fill="currentColor" stroke="none"/>',
-  pause: '<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor" stroke="none"/>',
-  left: '<path d="M15 6l-6 6 6 6"/>',
-  right: '<path d="M9 6l6 6-6 6"/>',
-  scissors: '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8 8.5L20 18M8 15.5L20 6"/>',
-  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-  expand: '<path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"/>',
-  zoom: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5M11 8v6M8 11h6"/>',
-  camera: '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>',
-  trash: '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/>',
-  reset: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 4v4h4"/>',
-  download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
-  target: '<circle cx="12" cy="12" r="7"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/>',
-  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
-  unmark: '<path d="M8 5H5v14h3M16 5h3v14h-3"/><path d="M10 9.5l4 5M14 9.5l-4 5"/>',
-  loop: '<path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/>',
+  folder: `<path d="M2.8 6.6c0-.9.7-1.6 1.6-1.6h4.4l2 2.1h8.8c.9 0 1.6.7 1.6 1.6v9.6c0 .9-.7 1.6-1.6 1.6H4.4c-.9 0-1.6-.7-1.6-1.6z" fill="#d9a531"/>
+    <path d="M5.4 9.2h13.2v4H5.4z" fill="${C.c}"/>
+    <path d="M2.8 11h18.4l-1.1 7.5c-.1.7-.7 1.2-1.4 1.2H4.4c-.8 0-1.4-.6-1.4-1.4z" fill="${C.y}"/>`,
+  play: `<path d="M7.5 4.8v14.4L19 12z" fill="${C.o}" stroke-width="1.8"/>`,
+  pause: `<rect x="6.5" y="5" width="4" height="14" rx="1" fill="${C.y}"/><rect x="13.5" y="5" width="4" height="14" rx="1" fill="${C.y}"/>`,
+  left: '<path d="M15 6l-6 6 6 6" stroke-width="2.4"/>',
+  right: '<path d="M9 6l6 6-6 6" stroke-width="2.4"/>',
+  scissors: `<path d="M8.6 9.2L20 18M8.6 14.8L20 6" stroke-width="2.4"/>
+    <circle cx="6" cy="7.2" r="3" fill="${C.o}"/><circle cx="6" cy="16.8" r="3" fill="${C.o}"/>
+    <circle cx="6" cy="7.2" r="1" fill="${C.c}"/><circle cx="6" cy="16.8" r="1" fill="${C.c}"/>`,
+  link: dbl('M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', C.b) + dbl('M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', C.b),
+  expand: dbl('M4.5 12h15', C.b) + `<path d="M7.5 8.2L3.5 12l4 3.8zM16.5 8.2l4 3.8-4 3.8z" fill="${C.b}"/>`,
+  zoom: dbl('M15.6 15.6l4.6 4.6', C.o, 2.8) + `<circle cx="10.5" cy="10.5" r="6.6" fill="#bfe0f0"/><path d="M7.2 9.6a3.6 3.6 0 0 1 2.6-2.6" stroke="${C.c}" stroke-width="1.6"/>`,
+  camera: `<rect x="2.8" y="7" width="18.4" height="12.8" rx="2.2" fill="${C.b}"/>
+    <path d="M8 7l1.4-2.4h5.2L16 7z" fill="${C.y}"/>
+    <circle cx="12" cy="13.3" r="4.2" fill="${C.c}"/><circle cx="12" cy="13.3" r="2" fill="${C.ink}"/>
+    <rect x="16.6" y="9" width="2.4" height="1.6" rx=".4" fill="${C.y}" stroke-width="1.2"/>`,
+  trash: `<path d="M6 8.6h12l-1.1 11.2c-.1.7-.6 1.2-1.3 1.2H8.4c-.7 0-1.2-.5-1.3-1.2z" fill="${C.y}"/>
+    <rect x="4" y="5.6" width="16" height="3" rx="1" fill="${C.y}"/>
+    <path d="M9.6 5.6V3.9h4.8v1.7" />
+    <path d="M10 11.2v6.4M14 11.2v6.4" stroke-width="1.6"/>`,
+  reset: dbl('M5 12a7 7 0 1 0 2.1-5', C.b) + `<path d="M3.6 3.8l.6 5.2 5.1-1.1z" fill="${C.b}"/>`,
+  download: `<path d="M3.5 15v3.5c0 .8.7 1.5 1.5 1.5h14c.8 0 1.5-.7 1.5-1.5V15" fill="${C.y}"/>` + dbl('M12 4v9.5', C.o) + `<path d="M7.6 10.6L12 15.2l4.4-4.6z" fill="${C.o}"/>`,
+  target: `<circle cx="12" cy="12" r="7" fill="${C.c}"/><circle cx="12" cy="12" r="3.2" fill="${C.o}"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" stroke-width="2"/>`,
+  sparkle: `<path d="M11 2.8l1.9 5.3 5.3 1.9-5.3 1.9L11 17.2l-1.9-5.3L3.8 10l5.3-1.9z" fill="${C.y}"/><path d="M18 14.4l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" fill="${C.o}"/>`,
+  unmark: `<path d="M8.5 4.5H5v15h3.5M15.5 4.5H19v15h-3.5" stroke-width="2.2"/>` + dbl('M10 9.5l4 5M14 9.5l-4 5', C.o, 1.8),
+  loop: dbl('M4 11V9.5a3 3 0 0 1 3-3h10', C.b) + dbl('M20 13v1.5a3 3 0 0 1-3 3H7', C.b) + `<path d="M16 3.4l4.2 3.1-4.2 3.1zM8 14.4l-4.2 3.1L8 20.6z" fill="${C.b}"/>`,
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/>',
-  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  close: dbl('M6.5 6.5l11 11M17.5 6.5l-11 11', C.o, 2),
 };
-const svg = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+const svg = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="${C.ink}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 function paintIcons(root = document) {
   root.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = svg(el.dataset.icon); });
 }
@@ -977,7 +990,7 @@ function drawTimeline() {
   const x = tlx;
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   x.clearRect(0, 0, W, H);
-  x.fillStyle = '#1b1714'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#2b2523'; x.fillRect(0, 0, W, H);
   // Zeitskala
   const span = S.view.b - S.view.a;
   const steps = [0.04, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800];
@@ -995,14 +1008,14 @@ function drawTimeline() {
       const x0 = tlX(c.start), x1 = tlX(c.end);
       if (x1 < 0 || x0 > W) return;
       if (!c.sel) { x.fillStyle = 'rgba(15,15,16,.72)'; x.fillRect(x0, top, x1 - x0, h); }
-      if (i > 0) { x.fillStyle = '#1b1714'; x.fillRect(x0 - 1, top, 2, h); }
+      if (i > 0) { x.fillStyle = '#2b2523'; x.fillRect(x0 - 1, top, 2, h); }
     });
     const c = activeClip();
     if (c) {
       const x0 = tlX(c.start), x1 = tlX(c.end);
-      x.strokeStyle = '#f5c242'; x.lineWidth = 3;
+      x.strokeStyle = '#ecbc4a'; x.lineWidth = 3;
       x.strokeRect(x0 + 1, top + 1, Math.max(2, x1 - x0 - 2), h - 2);
-      x.fillStyle = '#f5c242';
+      x.fillStyle = '#ecbc4a';
       x.fillRect(x0, top, 5, h); x.fillRect(x1 - 5, top, 5, h);
       x.fillStyle = '#141210';
       x.fillRect(x0 + 2, top + h / 2 - 6, 1, 12); x.fillRect(x1 - 3, top + h / 2 - 6, 1, 12);
@@ -1016,13 +1029,13 @@ function drawTimeline() {
       const px = tlX(s.t);
       if (px < -4 || px > W + 4) continue;
       const active = s.id === S.activeStill;
-      x.fillStyle = active ? '#f5c242' : s.sel ? 'rgba(255,250,243,.85)' : 'rgba(255,255,255,.3)';
+      x.fillStyle = active ? '#ecbc4a' : s.sel ? 'rgba(255,250,243,.85)' : 'rgba(255,255,255,.3)';
       x.fillRect(px - (active ? 2 : 1), top + 4, active ? 4 : 2, h - 8);
     }
   }
   // Playhead
   const p = tlX(player.currentTime || 0);
-  x.fillStyle = '#e8812f';
+  x.fillStyle = '#e1653a';
   x.fillRect(p - 1, 0, 2, H);
   x.beginPath(); x.moveTo(p - 5, 0); x.lineTo(p + 5, 0); x.lineTo(p, 6); x.fill();
   // Info

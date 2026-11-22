@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Loopstill</title>
 <meta name="description" content="GIFs und Screengrabs aus deinem Film, direkt im Browser. Nichts wird hochgeladen.">
-<meta name="theme-color" content="#e8812f">
+<meta name="theme-color" content="#e1653a">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
 @font-face{font-family:"Space Mono";src:url(schrift/space-mono-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Space Mono";src:url(schrift/space-mono-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
 :root{
-  /* Retro-Pop: Pfirsich, Orange, dicke schwarze Linien, harte Schatten */
-  --bg:#cfa992; --win:#f2d3b6; --win-2:#f7e2cd; --paper:#fffaf3; --ink:#141210;
-  --orange:#e8812f; --orange-2:#f39643; --purple:#7a6bd6; --yellow:#f5c242; --teal:#4aa9bf; --red:#e0563b;
-  --surface:#1b1714; --raised:var(--win-2); --raised-2:var(--paper); --line:rgba(20,18,16,.18);
-  --text:var(--ink); --muted:rgba(20,18,16,.62); --dim:rgba(20,18,16,.4);
+  /* Retro-Pop: warmes Grau, cremefarbene Fenster, bunte Titelleisten, dicke Linien */
+  --bg:#8e8889; --win:#f1ebe3; --win-2:#e7dfd4; --paper:#fbf7f1; --ink:#2b2523;
+  --orange:#e1653a; --orange-2:#ea7d55; --blue:#4a90c9; --yellow:#ecbc4a; --teal:#4a90c9; --red:#d8452b; --pink:#e98aa0; --green:#7cc28a;
+  --surface:#2b2523; --raised:var(--win-2); --raised-2:var(--paper); --line:rgba(43,37,35,.18);
+  --text:var(--ink); --muted:rgba(43,37,35,.64); --dim:rgba(43,37,35,.4);
   --accent:var(--orange); --accent-hover:var(--orange-2); --cream:#fffaf3; --warning:#b5321b;
-  --row:rgba(232,129,47,.18);
+  --row:rgba(74,144,201,.2);
   --b:2.5px solid var(--ink); --shadow:4px 4px 0 var(--ink); --shadow-s:3px 3px 0 var(--ink);
   --sans:"Space Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --mono:"Space Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -45,6 +45,7 @@ body{display:flex;flex-direction:column}
 .fileinfo .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:36vw;font-weight:700}
 .winctl{display:flex;gap:5px;margin-left:4px}
 .winctl i{width:13px;height:13px;border:2px solid var(--ink);border-radius:3px;background:var(--paper)}
+.winctl i:nth-child(1){background:var(--yellow)}.winctl i:nth-child(2){background:var(--blue)}
 
 /* Buttons */
 .icon{width:32px;height:32px;display:inline-grid;place-items:center;border:2px solid transparent;border-radius:7px;background:none;color:var(--ink);cursor:pointer;flex:none}
@@ -52,7 +53,7 @@ body{display:flex;flex-direction:column}
 .icon:disabled{opacity:.35;cursor:default;background:none;border-color:transparent}
 .icon svg{width:18px;height:18px}
 .icon.danger:hover{color:var(--red)}
-.icon.on{background:var(--purple);color:#fff;border-color:var(--ink)}
+.icon.on{background:var(--yellow);border-color:var(--ink);box-shadow:inset 2px 2px 0 rgba(43,37,35,.25)}
 .top .icon{background:var(--paper);border-color:var(--ink);box-shadow:var(--shadow-s)}
 .btn{height:30px;padding:0 12px;border:var(--b);border-radius:7px;background:var(--paper);cursor:pointer;font-weight:700;white-space:nowrap;box-shadow:var(--shadow-s);transition:transform .05s,box-shadow .05s}
 .btn:hover{background:#fff}
@@ -90,7 +91,6 @@ body{display:flex;flex-direction:column}
 .transport .sep{width:2px;height:20px;background:var(--ink);margin:0 6px;opacity:.25}
 .transport .grow{flex:1}
 .transport .btn{height:28px}
-#playBtn{color:var(--red)}
 .tlwrap{background:var(--win);border-bottom:var(--b);padding:8px 10px 6px}
 #timeline{width:100%;height:62px;display:block;cursor:pointer;touch-action:none;border:var(--b);border-radius:6px;background:var(--surface)}
 .tlinfo{display:flex;justify-content:space-between;gap:10px;margin-top:5px;color:var(--muted);font-size:11.5px}
@@ -103,7 +103,8 @@ body{display:flex;flex-direction:column}
 .check{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--ink);display:grid;place-items:center;flex:none;background:var(--paper);cursor:pointer;padding:0}
 .check.on{background:var(--paper)}
 .check svg{display:none}
-.check.on::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--purple)}
+.check.on{background:var(--blue)}
+.check.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--paper);border:1.5px solid var(--ink)}
 .thumb{width:96px;height:54px;border-radius:5px;border:2px solid var(--ink);background:var(--win-2);object-fit:cover;flex:none;display:block}
 .clip .t1{font-weight:700}
 .clip .t2{color:var(--muted);font-size:11.5px}
@@ -127,18 +128,22 @@ body{display:flex;flex-direction:column}
 .sec > :not(h2){margin-left:12px;margin-right:12px}
 .row{display:flex;align-items:center;gap:10px;min-height:38px;border-top:2px solid rgba(20,18,16,.1)}
 .sec h2 + .row,.sec h2 + .block{border-top:0}
+.sec.t-blue h2{background:var(--blue);color:var(--paper)}
+.sec.t-blue h2 .icon{color:var(--paper)}
+.sec.t-yellow h2{background:var(--yellow)}
+.sec h2 .icon:hover{background:var(--paper)}
 .row label,.row .lbl{flex:1;min-width:0}
 .row .val{min-width:48px;text-align:right;font-weight:700}
 .row select,.row input[type=number]{background:var(--paper);border:2px solid var(--ink);border-radius:6px;height:28px;padding:0 6px;max-width:190px;font-weight:700}
 .row input[type=number]{width:72px;text-align:right}
-.row input[type=range]{flex:1;accent-color:var(--purple);min-width:80px}
+.row input[type=range]{flex:1;accent-color:var(--orange);min-width:80px}
 .seg{display:flex;border:2px solid var(--ink);border-radius:7px;overflow:hidden;flex:1;background:var(--paper)}
 .seg button{flex:1;border:0;background:none;padding:4px 6px;cursor:pointer;font-size:12px;font-weight:700}
 .seg button + button{border-left:2px solid var(--ink)}
-.seg button.on{background:var(--purple);color:#fff}
+.seg button.on{background:var(--blue);color:var(--paper)}
 .block{padding:10px 0 12px;border-top:2px solid rgba(20,18,16,.1)}
 .progress{height:16px;background:var(--paper);border:2px solid var(--ink);border-radius:5px;overflow:hidden;flex:1;padding:2px}
-.progress i{display:block;height:100%;width:0;border-radius:2px;background:repeating-linear-gradient(90deg,var(--purple) 0 8px,transparent 8px 11px);transition:width .2s}
+.progress i{display:block;height:100%;width:0;border-radius:2px;background:repeating-linear-gradient(90deg,var(--orange) 0 8px,transparent 8px 11px);transition:width .2s}
 .progress.busy i{width:30%!important;animation:busy 1.1s ease-in-out infinite}
 @keyframes busy{0%{margin-left:-30%}100%{margin-left:100%}}
 .results{display:flex;flex-direction:column;gap:6px;margin-top:10px}
@@ -150,7 +155,9 @@ body{display:flex;flex-direction:column}
 .warn{color:var(--warning);font-weight:700}
 footer{margin:0 12px 10px;padding:6px 12px;color:var(--ink);font-size:11px;display:flex;gap:14px;flex-wrap:wrap;background:var(--win-2);border:2px solid var(--ink);border-radius:8px;flex:none}
 footer a{color:var(--ink)}
-.kbd{font-family:var(--mono);font-size:10.5px;border:1.5px solid var(--ink);border-radius:4px;padding:0 4px;background:var(--paper);box-shadow:1.5px 1.5px 0 var(--ink)}
+.kbd{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:700;line-height:1.5;border:2px solid var(--ink);border-radius:5px;padding:0 6px;background:var(--paper);box-shadow:2px 2px 0 var(--ink);border-bottom-width:3px}
+.kbd.k-o{background:var(--orange);color:var(--paper)}.kbd.k-b{background:var(--blue);color:var(--paper)}.kbd.k-y{background:var(--yellow)}.kbd.k-p{background:var(--pink)}.kbd.k-g{background:var(--green)}
+footer .keys{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .toast{position:fixed;left:50%;bottom:52px;transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:9px 14px;border-radius:10px;border:var(--b);box-shadow:var(--shadow);z-index:10;max-width:calc(100% - 32px);font-weight:700}
 .offscreen{position:fixed;left:-10000px;top:0;width:320px;height:180px;pointer-events:none}
 
@@ -242,7 +249,7 @@ footer a{color:var(--ink)}
   <aside class="panel">
     <!-- GIFs -->
     <div data-show="gifs">
-      <div class="sec">
+      <div class="sec t-blue">
         <h2>Schnitterkennung <span class="grow"></span>
           <button class="icon" id="resetClips" title="Zurücksetzen: ganzer Film als ein Clip" data-icon="reset"></button></h2>
         <div class="block" id="anaBlockG"></div>
@@ -253,7 +260,7 @@ footer a{color:var(--ink)}
         <div class="row"><label for="minLen">Kürzeste Einstellung</label><input type="number" id="minLen" min="0.2" max="5" step="0.1"><span class="muted">s</span></div>
       </div>
 
-      <div class="sec">
+      <div class="sec t-yellow">
         <h2>GIF-Einstellungen <span class="grow"></span>
           <select id="preset" title="Presets" style="background:var(--paper);border:2px solid var(--ink);border-radius:6px;height:26px;max-width:130px;cursor:pointer;font-weight:700"></select></h2>
         <div class="row"><label for="aspect">Format</label><select id="aspect"></select></div>
@@ -279,7 +286,7 @@ footer a{color:var(--ink)}
 
     <!-- Screengrabs -->
     <div data-show="stills">
-      <div class="sec">
+      <div class="sec t-blue">
         <h2>Cinematic Frames</h2>
         <div class="block" id="anaBlockS"></div>
         <div class="row"><label for="count">Vorschläge</label><select id="count"></select></div>
@@ -287,10 +294,10 @@ footer a{color:var(--ink)}
           <button class="btn" id="findStills" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px"><span data-icon="sparkle" style="display:inline-grid"></span><span id="findStillsLabel">Frames finden</span></button>
           <button class="icon" id="grabBtn2" title="Screengrab am Playhead (S)" data-icon="camera"></button>
         </div>
-        <div class="note">Bewertet Schärfe, Kontrast, Farbe, Belichtung und Bildaufbau über den ganzen Film, ähnliche Bilder fliegen raus. Eigene Screengrabs setzt du mit <span class="kbd">S</span> an der Playhead-Position.</div>
+        <div class="note">Bewertet Schärfe, Kontrast, Farbe, Belichtung und Bildaufbau über den ganzen Film, ähnliche Bilder fliegen raus. Eigene Screengrabs setzt du mit <span class="kbd k-b">S</span> an der Playhead-Position.</div>
       </div>
 
-      <div class="sec" id="stillEditor" hidden>
+      <div class="sec t-yellow" id="stillEditor" hidden>
         <h2>Screengrab korrigieren <span class="grow"></span>
           <button class="icon danger" id="stillDelete" title="Screengrab entfernen (⌫)" data-icon="trash"></button></h2>
         <div class="row">
@@ -319,7 +326,7 @@ footer a{color:var(--ink)}
 
 <footer>
   <span>Läuft komplett im Browser, nichts wird hochgeladen.</span>
-  <span>Tasten: <span class="kbd">Leertaste</span> <span class="kbd">← →</span> <span class="kbd">I</span> <span class="kbd">O</span> <span class="kbd">B</span> <span class="kbd">G</span> <span class="kbd">S</span></span>
+  <span class="keys">Tasten: <span class="kbd k-o">Leertaste</span> <span class="kbd k-b">← →</span> <span class="kbd k-y">I</span> <span class="kbd k-y">O</span> <span class="kbd k-p">B</span> <span class="kbd k-g">G</span> <span class="kbd k-b">S</span></span>
   <span style="margin-left:auto"><span id="version" title="Version und Build-Datum"></span> · GIF-Encoder <a href="https://gif.ski" target="_blank" rel="noopener">gifski</a> · <a href="https://github.com/brockmann-director/loopstill" target="_blank" rel="noopener">Quellcode</a></span>
 </footer>
 
