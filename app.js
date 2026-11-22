@@ -977,12 +977,12 @@ function drawTimeline() {
   const x = tlx;
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   x.clearRect(0, 0, W, H);
-  x.fillStyle = '#18181a'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#1b1714'; x.fillRect(0, 0, W, H);
   // Zeitskala
   const span = S.view.b - S.view.a;
   const steps = [0.04, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800];
   const tick = steps.find((s) => (s / span) * W > 70) || 3600;
-  x.fillStyle = 'rgba(255,255,255,.28)'; x.font = '10px ' + getComputedStyle(document.body).fontFamily;
+  x.fillStyle = 'rgba(255,250,243,.55)'; x.font = '10px ' + getComputedStyle(document.body).fontFamily;
   for (let t = Math.ceil(S.view.a / tick) * tick; t <= S.view.b; t += tick) {
     const px = tlX(t);
     x.fillRect(px, 0, 1, 5);
@@ -995,16 +995,16 @@ function drawTimeline() {
       const x0 = tlX(c.start), x1 = tlX(c.end);
       if (x1 < 0 || x0 > W) return;
       if (!c.sel) { x.fillStyle = 'rgba(15,15,16,.72)'; x.fillRect(x0, top, x1 - x0, h); }
-      if (i > 0) { x.fillStyle = '#18181a'; x.fillRect(x0 - 1, top, 2, h); }
+      if (i > 0) { x.fillStyle = '#1b1714'; x.fillRect(x0 - 1, top, 2, h); }
     });
     const c = activeClip();
     if (c) {
       const x0 = tlX(c.start), x1 = tlX(c.end);
-      x.strokeStyle = '#faf5e8'; x.lineWidth = 2;
+      x.strokeStyle = '#f5c242'; x.lineWidth = 3;
       x.strokeRect(x0 + 1, top + 1, Math.max(2, x1 - x0 - 2), h - 2);
-      x.fillStyle = '#faf5e8';
+      x.fillStyle = '#f5c242';
       x.fillRect(x0, top, 5, h); x.fillRect(x1 - 5, top, 5, h);
-      x.fillStyle = '#18181a';
+      x.fillStyle = '#141210';
       x.fillRect(x0 + 2, top + h / 2 - 6, 1, 12); x.fillRect(x1 - 3, top + h / 2 - 6, 1, 12);
     }
   } else {
@@ -1016,13 +1016,13 @@ function drawTimeline() {
       const px = tlX(s.t);
       if (px < -4 || px > W + 4) continue;
       const active = s.id === S.activeStill;
-      x.fillStyle = active ? '#faf5e8' : s.sel ? 'rgba(250,245,232,.75)' : 'rgba(255,255,255,.3)';
+      x.fillStyle = active ? '#f5c242' : s.sel ? 'rgba(255,250,243,.85)' : 'rgba(255,255,255,.3)';
       x.fillRect(px - (active ? 2 : 1), top + 4, active ? 4 : 2, h - 8);
     }
   }
   // Playhead
   const p = tlX(player.currentTime || 0);
-  x.fillStyle = '#fc5400';
+  x.fillStyle = '#e8812f';
   x.fillRect(p - 1, 0, 2, H);
   x.beginPath(); x.moveTo(p - 5, 0); x.lineTo(p + 5, 0); x.lineTo(p, 6); x.fill();
   // Info
